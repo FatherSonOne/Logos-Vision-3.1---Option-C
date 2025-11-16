@@ -3,27 +3,20 @@ import type { Project, Client } from '../types';
 import { ProjectStatus } from '../types';
 import { ProjectTimeline } from './ProjectTimeline';
 import { getDeadlineStatus } from '../utils/dateHelpers';
-import { ClockIcon } from './icons';
+import { StatusBadge } from './ui/StatusBadge';
+import { ClockIcon, BriefcaseIcon, PlusIcon } from './icons';
+import { EmptyState } from './ui/EmptyState';
+import { AdvancedFilterPanel, FilterConfig, FilterGroup, SavedFilter } from './filters/AdvancedFilterPanel';
+import { applyFilterLogic } from './filters/filterLogic';
+import { ExportButton, ExportDialog, ExportField } from './export/ExportButton';
+
 
 interface ProjectListProps {
   projects: Project[];
   clients: Client[];
   onSelectProject: (id: string) => void;
+  onAddProject: () => void;
 }
-
-const StatusBadge: React.FC<{ status: ProjectStatus }> = ({ status }) => {
-  const colorClasses = {
-    [ProjectStatus.Planning]: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
-    [ProjectStatus.InProgress]: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
-    [ProjectStatus.Completed]: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300',
-    [ProjectStatus.OnHold]: 'bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-300',
-  };
-  return (
-    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${colorClasses[status]}`}>
-      {status}
-    </span>
-  );
-};
 
 const ProjectCard: React.FC<{ project: Project; clientName: string; onSelectProject: (id: string) => void }> = ({ project, clientName, onSelectProject }) => {
     const completionPercentage = project.tasks.length > 0
@@ -37,7 +30,15 @@ const ProjectCard: React.FC<{ project: Project; clientName: string; onSelectProj
             <div>
                 <div className="flex justify-between items-start mb-2">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">{project.name}</h3>
-                    <StatusBadge status={project.status} />
+                    <StatusBadge 
+                      label={project.status} 
+                      variant={
+                        project.status === ProjectStatus.Planning ? 'neutral' :
+                        project.status === ProjectStatus.InProgress ? 'success' :
+                        project.status === ProjectStatus.Completed ? 'info' :
+                        project.status === ProjectStatus.OnHold ? 'warning' : 'neutral'
+                      }
+                    />
                 </div>
                 <p className="text-sm text-cyan-800 font-medium mb-3 dark:text-cyan-300">{clientName}</p>
                 <p className="text-sm text-slate-700 line-clamp-2 mb-4 dark:text-slate-200">{project.description}</p>
@@ -71,18 +72,64 @@ const ProjectCard: React.FC<{ project: Project; clientName: string; onSelectProj
     );
 };
 
-export const ProjectList: React.FC<ProjectListProps> = ({ projects, clients, onSelectProject }) => {
+export const ProjectList: React.FC<ProjectListProps> = ({ projects, clients, onSelectProject, onAddProject }) => {
   const [view, setView] = useState<'card' | 'timeline'>('card');
-  const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
-  const [clientFilter, setClientFilter] = useState<string>('all');
+  const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
+  const [activeFilter, setActiveFilter] = useState<FilterGroup | null>(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  
+  // Define filterable fields
+  const filterConfigs: FilterConfig[] = [
+    {
+      field: 'status',
+      label: 'Status',
+      type: 'select',
+      options: Object.values(ProjectStatus).map(s => ({ value: s, label: s })),
+    },
+    {
+      field: 'clientId',
+      label: 'Client',
+      type: 'select',
+      options: clients.map(c => ({ value: c.id, label: c.name })),
+    },
+    {
+      field: 'name',
+      label: 'Project Name',
+      type: 'text',
+    },
+    {
+      field: 'endDate',
+      label: 'End Date',
+      type: 'date',
+    },
+  ];
 
-  const filteredProjects = useMemo(() => {
-    return projects.filter(project => {
-        const statusMatch = statusFilter === 'all' || project.status === statusFilter;
-        const clientMatch = clientFilter === 'all' || project.clientId === clientFilter;
-        return statusMatch && clientMatch;
-    });
-  }, [projects, statusFilter, clientFilter]);
+  // Define exportable fields
+  const exportFields: ExportField[] = [
+    { key: 'name', label: 'Project Name' },
+    { key: 'status', label: 'Status' },
+    { 
+      key: 'clientId', 
+      label: 'Client',
+      format: (clientId) => clients.find(c => c.id === clientId)?.name || ''
+    },
+    { 
+      key: 'startDate', 
+      label: 'Start Date',
+      format: (date) => date ? new Date(date).toLocaleDateString() : ''
+    },
+    { 
+      key: 'endDate', 
+      label: 'End Date',
+      format: (date) => date ? new Date(date).toLocaleDateString() : ''
+    },
+  ];
+
+  // Apply filters
+  const filteredProjects = useMemo(() => 
+    applyFilterLogic(projects, activeFilter),
+    [projects, activeFilter]
+  );
 
   const getClientName = (clientId: string) => {
     return clients.find(c => c.id === clientId)?.name || 'Unknown Client';
@@ -95,65 +142,94 @@ export const ProjectList: React.FC<ProjectListProps> = ({ projects, clients, onS
             : 'text-slate-600 hover:bg-white/50 dark:text-slate-300 dark:hover:bg-white/20'
     }`;
 
-  const selectStyles = "bg-white/50 dark:bg-black/30 backdrop-blur-sm border-white/30 dark:border-white/10 rounded-md px-3 py-2 text-sm text-slate-700 dark:text-slate-200 focus:ring-cyan-500 focus:border-cyan-500 shadow-sm";
-
   return (
     <div className="text-shadow-strong">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Projects</h2>
-          <div className="flex flex-wrap items-center gap-4 mt-2">
-            <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as ProjectStatus | 'all')}
-                className={selectStyles}
-                aria-label="Filter by status"
-            >
-                <option value="all">All Statuses</option>
-                {Object.values(ProjectStatus).map(status => <option key={status} value={status}>{status}</option>)}
-            </select>
-            <select
-                value={clientFilter}
-                onChange={(e) => setClientFilter(e.target.value)}
-                className={selectStyles}
-                aria-label="Filter by client"
-            >
-                <option value="all">All Clients</option>
-                {clients.map(client => <option key={client.id} value={client.id}>{client.name}</option>)}
-            </select>
-          </div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Projects</h1>
+          {filteredProjects.length !== projects.length && (
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+              Showing {filteredProjects.length} of {projects.length} projects.
+            </p>
+          )}
         </div>
-        <div className="flex items-center gap-1 p-1 bg-black/10 dark:bg-black/20 rounded-lg border border-white/20 dark:border-white/10 self-start sm:self-center">
-            <button onClick={() => setView('card')} className={viewButtonClasses(view === 'card')}>
-                Card View
+        <div className="flex items-center gap-3 flex-wrap">
+            <ExportButton
+              data={filteredProjects}
+              fields={exportFields}
+              filename="projects_quick_export"
+            />
+            
+            <button
+              onClick={() => setShowExportDialog(true)}
+              className="px-4 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              Custom Export...
             </button>
-            <button onClick={() => setView('timeline')} className={viewButtonClasses(view === 'timeline')}>
-                Timeline View
+            <AdvancedFilterPanel
+                filters={filterConfigs}
+                onApplyFilters={setActiveFilter}
+                savedFilters={savedFilters}
+                onSaveFilter={(name, group) => {
+                  const newFilter: SavedFilter = { id: `filter-${Date.now()}`, name, group, createdAt: new Date() };
+                  setSavedFilters([...savedFilters, newFilter]);
+                }}
+            />
+            <button onClick={onAddProject} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg font-medium hover:shadow-lg transition-all">
+                <PlusIcon size="sm" /> New Project
             </button>
+            <div className="flex items-center gap-1 p-1 bg-black/10 dark:bg-black/20 rounded-lg border border-white/20 dark:border-white/10">
+                <button onClick={() => setView('card')} className={viewButtonClasses(view === 'card')}>
+                    Card
+                </button>
+                <button onClick={() => setView('timeline')} className={viewButtonClasses(view === 'timeline')}>
+                    Timeline
+                </button>
+            </div>
         </div>
       </div>
       {view === 'card' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProjects.length > 0 ? (
-                filteredProjects.map((project, index) => (
-                <div key={project.id} className="fade-in h-full" style={{ animationDelay: `${index * 50}ms` }}>
-                    <ProjectCard
-                        project={project}
-                        clientName={getClientName(project.clientId)}
-                        onSelectProject={onSelectProject}
-                    />
-                </div>
-                ))
-            ) : (
-                <div className="col-span-full text-center py-16 bg-white/30 dark:bg-black/20 backdrop-blur-xl rounded-lg border border-dashed border-white/20 dark:border-white/10">
-                    <p className="text-slate-700 dark:text-slate-300 font-semibold">No projects match the selected filters.</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Try adjusting the status or client filters.</p>
-                </div>
-            )}
-        </div>
+        projects.length === 0 ? (
+          <div className="col-span-full">
+            <EmptyState
+              icon={<BriefcaseIcon />}
+              title="No projects yet"
+              description="Get started by creating your first project to organize your work and collaborate with your team."
+              action={{
+                label: 'Create Project',
+                onClick: onAddProject
+              }}
+            />
+          </div>
+        ) : filteredProjects.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProjects.map((project, index) => (
+              <div key={project.id} className="fade-in h-full" style={{ animationDelay: `${index * 50}ms` }}>
+                <ProjectCard
+                  project={project}
+                  clientName={getClientName(project.clientId)}
+                  onSelectProject={onSelectProject}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="col-span-full text-center py-16 bg-white/30 dark:bg-black/20 backdrop-blur-xl rounded-lg border border-dashed border-white/20 dark:border-white/10">
+            <p className="text-slate-700 dark:text-slate-300 font-semibold">No projects match the selected filters.</p>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Try adjusting the filters.</p>
+          </div>
+        )
       ) : (
-          <ProjectTimeline projects={filteredProjects} clients={clients} onSelectProject={onSelectProject} />
+        <ProjectTimeline projects={filteredProjects} clients={clients} onSelectProject={onSelectProject} />
       )}
+      
+      <ExportDialog
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        data={filteredProjects}
+        availableFields={exportFields}
+        title="Projects"
+      />
     </div>
   );
 };

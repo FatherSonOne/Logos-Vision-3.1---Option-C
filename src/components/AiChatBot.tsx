@@ -2,8 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { ChatMessage } from '../types';
 import { chatWithBot } from '../services/geminiService';
 
-export const AiChatBot: React.FC = () => {
-    const [isOpen, setIsOpen] = useState(false);
+interface AiChatBotProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+export const AiChatBot: React.FC<AiChatBotProps> = ({ isOpen, onClose }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([
         { id: 'init', roomId: 'ai-chat', senderId: 'AI', text: 'Hello! How can I help you today?', timestamp: new Date().toISOString() }
     ]);
@@ -15,7 +19,11 @@ export const AiChatBot: React.FC = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
-    useEffect(scrollToBottom, [messages]);
+    useEffect(() => {
+        if(isOpen) {
+            scrollToBottom();
+        }
+    }, [messages, isOpen]);
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -47,60 +55,55 @@ export const AiChatBot: React.FC = () => {
         setIsLoading(false);
     };
 
+    if (!isOpen) {
+        return null;
+    }
+
     return (
-        <div className="fixed bottom-6 right-6 z-40">
-            {isOpen ? (
-                <div className="w-80 h-[28rem] bg-white rounded-lg shadow-2xl flex flex-col border border-slate-300">
-                    <header className="p-3 bg-indigo-600 text-white rounded-t-lg flex justify-between items-center">
-                        <h3 className="font-semibold text-sm">AI Assistant</h3>
-                        <button onClick={() => setIsOpen(false)} className="text-indigo-200 hover:text-white">&times;</button>
-                    </header>
-                    <div className="flex-1 p-3 overflow-y-auto bg-slate-50">
-                        <div className="space-y-3">
-                            {messages.map(msg => (
-                                <div key={msg.id} className={`flex items-start gap-2 ${msg.senderId === 'USER' ? 'justify-end' : ''}`}>
-                                    {msg.senderId === 'AI' && <div className="w-6 h-6 rounded-full bg-indigo-200 text-indigo-700 text-xs font-bold flex items-center justify-center flex-shrink-0">AI</div>}
-                                    <div className={`p-2 rounded-lg max-w-xs text-sm ${msg.senderId === 'USER' ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-800'}`}>
-                                        {msg.text}
+        <div className="fixed inset-0 z-50 flex items-end justify-end p-4 sm:p-6" role="dialog" aria-modal="true">
+            <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity animate-in fade-in-0 duration-300" onClick={onClose} />
+            <div className="relative w-full max-w-sm h-[32rem] bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col border border-white/20 dark:border-slate-700 animate-in slide-in-from-bottom-4 duration-300">
+                <header className="p-4 bg-transparent flex justify-between items-center border-b border-white/20 dark:border-slate-700">
+                    <h3 className="font-semibold text-slate-800 dark:text-slate-100">AI Assistant</h3>
+                    <button onClick={onClose} className="text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full p-1 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </header>
+                <div className="flex-1 p-3 overflow-y-auto bg-transparent">
+                    <div className="space-y-4">
+                        {messages.map(msg => (
+                            <div key={msg.id} className={`flex items-start gap-2.5 ${msg.senderId === 'USER' ? 'justify-end' : ''}`}>
+                                {msg.senderId === 'AI' && <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">AI</div>}
+                                <div className={`p-3 rounded-lg max-w-[85%] text-sm shadow-sm ${msg.senderId === 'USER' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200'}`}>
+                                    {msg.text}
+                                </div>
+                            </div>
+                        ))}
+                        {isLoading && (
+                            <div className="flex items-start gap-2.5">
+                                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">AI</div>
+                                 <div className="p-3 rounded-lg bg-white dark:bg-slate-700 shadow-sm">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="h-1.5 w-1.5 bg-slate-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                                        <span className="h-1.5 w-1.5 bg-slate-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                                        <span className="h-1.5 w-1.5 bg-slate-500 rounded-full animate-bounce"></span>
                                     </div>
-                                </div>
-                            ))}
-                            {isLoading && (
-                                <div className="flex items-start gap-2">
-                                     <div className="w-6 h-6 rounded-full bg-indigo-200 text-indigo-700 text-xs font-bold flex items-center justify-center flex-shrink-0">AI</div>
-                                     <div className="p-2 rounded-lg bg-slate-200">
-                                        <div className="flex items-center gap-1">
-                                            <span className="h-1.5 w-1.5 bg-slate-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                                            <span className="h-1.5 w-1.5 bg-slate-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                                            <span className="h-1.5 w-1.5 bg-slate-500 rounded-full animate-bounce"></span>
-                                        </div>
-                                     </div>
-                                </div>
-                            )}
-                        </div>
-                         <div ref={messagesEndRef} />
+                                 </div>
+                            </div>
+                        )}
                     </div>
-                    <form onSubmit={handleSendMessage} className="p-2 border-t border-slate-200">
-                        <input
-                            type="text"
-                            value={userInput}
-                            onChange={(e) => setUserInput(e.target.value)}
-                            placeholder="Ask something..."
-                            className="w-full text-sm p-2 bg-white border border-slate-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                        />
-                    </form>
+                     <div ref={messagesEndRef} />
                 </div>
-            ) : (
-                <button 
-                    onClick={() => setIsOpen(true)}
-                    className="w-16 h-16 bg-gradient-to-r from-indigo-600 to-violet-600 rounded-full shadow-lg flex items-center justify-center text-white hover:from-indigo-700 hover:to-violet-700 transition-transform hover:scale-110"
-                    aria-label="Open AI Assistant"
-                >
-                    <SparklesIcon />
-                </button>
-            )}
+                <form onSubmit={handleSendMessage} className="p-3 border-t border-white/20 dark:border-slate-700">
+                    <input
+                        type="text"
+                        value={userInput}
+                        onChange={(e) => setUserInput(e.target.value)}
+                        placeholder="Ask something..."
+                        className="w-full text-sm p-2 bg-white/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                </form>
+            </div>
         </div>
     );
 };
-
-const SparklesIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.293 2.293a1 1 0 010 1.414L13 12l-1.293 1.293a1 1 0 01-1.414 0L8 10.414a1 1 0 010-1.414L10.293 7l-2.293-2.293a1 1 0 011.414 0L12 6.414l1.293-1.293a1 1 0 011.414 0zM17 12l-2.293 2.293a1 1 0 01-1.414 0L12 13l-1.293 1.293a1 1 0 01-1.414 0L8 13.414a1 1 0 010-1.414L10.293 10l-2.293-2.293a1 1 0 011.414 0L12 9.414l1.293-1.293a1 1 0 011.414 0L17 10.414a1 1 0 010 1.414L14.707 13l2.293 2.293a1 1 0 010 1.414L15 18l1.293-1.293a1 1 0 011.414 0L20 18.414a1 1 0 010-1.414L17.707 15l2.293-2.293a1 1 0 010-1.414L18 10l-1.293 1.293a1 1 0 01-1.414 0L14 10.414a1 1 0 010-1.414l2.293-2.293a1 1 0 011.414 0L20 9.414a1 1 0 010 1.414L17.707 12z" /></svg>;

@@ -1,6 +1,7 @@
 import React from 'react';
-import type { Client } from '../../types';
+import type { Client } from '../types';
 import { MailIcon, PhoneIcon, LocationMarkerIcon, PlusIcon } from './icons';
+import { ExportButton, type ExportField } from './export/ExportButton';
 
 interface ClientListProps {
   clients: Client[];
@@ -46,10 +47,28 @@ const AddOrganizationCard: React.FC<{ onClick: () => void }> = ({ onClick }) => 
 );
 
 export const ClientList: React.FC<ClientListProps> = ({ clients, onAddOrganization, onSelectOrganization }) => {
+  const exportFields: ExportField[] = [
+    { key: 'name', label: 'Organization Name' },
+    { key: 'contactPerson', label: 'Contact Person' },
+    { key: 'email', label: 'Email' },
+    { key: 'phone', label: 'Phone' },
+    { key: 'location', label: 'Location' },
+    { 
+      key: 'createdAt', 
+      label: 'Date Added',
+      format: (date) => new Date(date).toLocaleDateString()
+    },
+  ];
+
   return (
     <div className="text-shadow-strong">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Organizations</h2>
+        <ExportButton
+          data={clients}
+          fields={exportFields}
+          filename="organizations"
+        />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {clients.map((client, index) => (

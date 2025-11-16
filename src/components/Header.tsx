@@ -1,7 +1,7 @@
 import React from 'react';
 import { GlobalSearch } from './GlobalSearch';
 import type { Page } from '../types';
-import { MoonIcon, SunIcon } from './icons';
+import { MoonIcon, SunIcon, QuestionMarkCircleIcon } from './icons';
 
 interface HeaderProps {
     onSearch: (query: string, includeWeb: boolean) => void;
@@ -12,6 +12,7 @@ interface HeaderProps {
     currentPage: Page;
     onNavigate: (page: Page) => void;
     onCloseTab: (page: Page, e: React.MouseEvent) => void;
+    onStartTour: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -22,7 +23,8 @@ export const Header: React.FC<HeaderProps> = ({
     openTabs, 
     currentPage, 
     onNavigate, 
-    onCloseTab 
+    onCloseTab,
+    onStartTour
 }) => {
     return (
         <header className="bg-white/20 dark:bg-slate-900/40 backdrop-blur-xl border-b border-white/20 dark:border-white/10 px-4 pt-4 flex flex-col z-10 flex-shrink-0">
@@ -41,7 +43,15 @@ export const Header: React.FC<HeaderProps> = ({
                         )}
                     </div>
                 </div>
-                <div className="flex-1 flex justify-end">
+                <div className="flex-1 flex justify-end items-center gap-2">
+                    <button
+                        onClick={onStartTour}
+                        id="guided-tour-button"
+                        className="p-2 rounded-full text-slate-700 dark:text-slate-200 bg-gradient-to-b from-white/50 to-white/20 dark:from-white/20 dark:to-transparent border border-white/30 dark:border-white/10 shadow-md hover:shadow-lg transition-shadow"
+                        aria-label="Start guided tour"
+                    >
+                        <QuestionMarkCircleIcon />
+                    </button>
                     <button
                         onClick={onToggleTheme}
                         className="p-2 rounded-full text-slate-700 dark:text-slate-200 bg-gradient-to-b from-white/50 to-white/20 dark:from-white/20 dark:to-transparent border border-white/30 dark:border-white/10 shadow-md hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 dark:focus:ring-offset-slate-900 btn-hover-scale"

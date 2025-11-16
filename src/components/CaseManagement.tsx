@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import type { Case, Client, TeamMember } from '../types';
 import { CaseStatus, CasePriority } from '../types';
+import { ExportButton, type ExportField } from './export/ExportButton';
+import { PlusIcon, PencilIcon, TrashIcon } from './icons';
 
 interface CaseManagementProps {
     cases: Case[];
@@ -169,6 +171,32 @@ export const CaseManagement: React.FC<CaseManagementProps> = ({ cases, clients, 
             ? 'bg-indigo-600 text-white'
             : 'text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700'
     }`;
+
+    const exportFields: ExportField[] = [
+      { key: 'title', label: 'Case Title' },
+      { key: 'status', label: 'Status' },
+      { key: 'priority', label: 'Priority' },
+      {
+        key: 'clientId',
+        label: 'Client',
+        format: (id) => getClientName(id)
+      },
+      {
+        key: 'assignedToId',
+        label: 'Assignee',
+        format: (id) => getAssigneeName(id)
+      },
+      {
+        key: 'createdAt',
+        label: 'Created',
+        format: (date) => new Date(date).toLocaleDateString()
+      },
+      {
+        key: 'lastUpdatedAt',
+        label: 'Last Updated',
+        format: (date) => new Date(date).toLocaleDateString()
+      },
+    ];
     
     return (
         <div>
@@ -199,11 +227,16 @@ export const CaseManagement: React.FC<CaseManagementProps> = ({ cases, clients, 
                         <button onClick={() => setView('tile')} className={viewButtonClasses(view === 'tile')}>Tile</button>
                         <button onClick={() => setView('board')} className={viewButtonClasses(view === 'board')}>Board</button>
                     </div>
+                    <ExportButton
+                      data={filteredCases}
+                      fields={exportFields}
+                      filename="cases"
+                    />
                     <button 
                         onClick={onAddCase}
                         className="flex items-center bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-3 py-2 rounded-md text-sm font-semibold hover:from-indigo-700 hover:to-violet-700 transition-colors"
                     >
-                        <PlusIcon />
+                        <PlusIcon size="sm" />
                         New Case
                     </button>
                  </div>
@@ -256,9 +289,3 @@ export const CaseManagement: React.FC<CaseManagementProps> = ({ cases, clients, 
         </div>
     );
 };
-
-
-const iconProps = { className: "h-4 w-4", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 2 };
-function PlusIcon() { return <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>; }
-function PencilIcon() { return <svg {...iconProps}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" /></svg>; }
-function TrashIcon() { return <svg {...iconProps}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>; }

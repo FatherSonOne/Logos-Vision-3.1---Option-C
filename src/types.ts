@@ -1,5 +1,4 @@
 
-
 export enum ProjectStatus {
   Planning = 'Planning',
   InProgress = 'In Progress',
@@ -310,7 +309,6 @@ export interface WebSearchResult {
   source: string;
 }
 
-// FIX: Moved SearchResults interface here to resolve circular dependency.
 export interface SearchResults {
     projects: Project[];
     clients: Client[];
@@ -334,8 +332,6 @@ export interface CalendarEvent {
     type: 'project' | 'task' | 'activity';
 }
 
-
-// FIX: Moved Page type here to resolve circular dependency issues.
 export type Page = 
   | 'dashboard' 
   | 'organizations' 

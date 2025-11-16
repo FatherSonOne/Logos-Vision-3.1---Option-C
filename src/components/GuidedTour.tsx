@@ -95,7 +95,7 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ steps, isOpen, onClose }
     return (
         <div className="fixed inset-0 z-[10000]">
             <div
-                className="absolute bg-black/60"
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                 style={{
                     clipPath: `path("M0,0H${window.innerWidth}V${window.innerHeight}H0V0ZM${left},${top}h${width}v${height}h-${width}Z")`,
                     transition: 'clip-path 0.3s ease-in-out'
@@ -108,6 +108,7 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ steps, isOpen, onClose }
                     <span className="text-xs text-slate-400">{currentStep + 1} / {steps.length}</span>
                     <div className="flex items-center gap-2">
                         {currentStep > 0 && <button onClick={prevStep} className="text-sm font-semibold px-3 py-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded">Back</button>}
+                        <button onClick={onClose} className="text-sm font-semibold px-3 py-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded">Skip</button>
                         <button onClick={nextStep} className="text-sm font-semibold px-3 py-1 bg-violet-600 text-white rounded hover:bg-violet-700">
                            {currentStep < steps.length - 1 ? 'Next' : 'Finish'}
                         </button>

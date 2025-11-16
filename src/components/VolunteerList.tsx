@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import type { Volunteer, Client, Project } from '../../types';
+import type { Volunteer, Client, Project } from '../types';
 import { VolunteersMap } from './VolunteersMap';
 import { MailIcon, LocationMarkerIcon, ClockIcon, PlusIcon, FolderIcon, BuildingIcon } from './icons';
+import { ExportButton, type ExportField } from './export/ExportButton';
 
 interface VolunteerListProps {
   volunteers: Volunteer[];
@@ -80,6 +81,19 @@ export const VolunteerList: React.FC<VolunteerListProps> = ({ volunteers, client
     const getProjectName = (id: string) => projects.find(p => p.id === id)?.name || 'Unknown Project';
     const getClientName = (id: string) => clients.find(c => c.id === id)?.name || 'Unknown Client';
 
+    const exportFields: ExportField[] = [
+      { key: 'name', label: 'Volunteer Name' },
+      { key: 'email', label: 'Email' },
+      { key: 'phone', label: 'Phone' },
+      { key: 'location', label: 'Location' },
+      {
+        key: 'skills',
+        label: 'Skills',
+        format: (skills) => skills.join(' | ')
+      },
+      { key: 'availability', label: 'Availability' },
+    ];
+
     return (
         <div className="space-y-8">
             <div className="bg-white p-4 rounded-lg border border-slate-200 dark:bg-slate-800 dark:border-slate-700 relative aspect-[4/1] overflow-hidden">
@@ -94,6 +108,11 @@ export const VolunteerList: React.FC<VolunteerListProps> = ({ volunteers, client
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
                     <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Volunteers</h2>
                     <div className="flex items-center gap-4">
+                        <ExportButton
+                            data={filteredVolunteers}
+                            fields={exportFields}
+                            filename="volunteers"
+                        />
                         <select
                             value={clientFilter}
                             onChange={(e) => setClientFilter(e.target.value)}
